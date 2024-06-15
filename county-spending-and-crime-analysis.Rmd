@@ -1,0 +1,238 @@
+---
+title: "county spending and crime"
+author: "Anh P. Truong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# 
+
+#This project is divided into 6 parts in total (amazing, right?)
+
+#Part 1
+
+#Research Question: Does increased school spending reduce violent crime?
+
+#My dataset includes a cross-section of counties with data describing crime rates (crime per-capita), school spending (per-pupil), and public safety spending for police and fire-department (per-capita).
+
+#For this project, I would expect a negative/positive correlation between the following
+
+##1. School spending and the crime rate -\> I expect a negative one, since higher investment in education might lead to improved socio-economic outcomes, better opportunitites, and ultimately lower crime rates.
+
+##2. School spending and police/fire spending -\> It seems to me that areas/counties that invest more in education are ones that have good financial funding. I think the insights that could be drawn from this is that they are either already have a good economic system. They offer an ideal environment for people to live in and businesses to grow; this way they may also have great funding for their public safety. yeup so I expect a positive correlation :)))) I may be wrong though, so let's see what I'll get from this dataset.
+
+##3.Police spending and the crime rate -\> This could be positive/negative depending on various factors such as the effectivenss of law enforcement, socio-economic conditions, and community relations with police.
+
+#Disclaimer: Assuming my data has a pannel structure, I can observe how variables change over time within the same units, allowing for the examination of trends + pattern. However, on the same note, this is not enough for a causation to be established. This needs more models, analyses with appropriate controls for other factors that could influence crime rates.
+
+#Some more things to consider besides the main analyses of this project: the incapacitation and deterrence effect of schools in regards to committing crime.
+
+##The incapacity effect refers to the idea that by given them an identity and keeping students oocupied during school hours, they would have less opportunity to commit crime.
+
+##The deterence effect: the role of education is to shape values, attitudes, and decision-making skills.
+
+```{r}
+#Part 2
+##In this part, I load up the data, tabulate the sample by year, then describe the main variables
+
+#setup packages
+library (summarytools)
+
+#set working drive
+setwd("/Users/tpanh/Documents/County spending and crime")
+
+#read in csv data
+data1 <- read.csv("publicsafety.csv")
+
+#tabulate years
+yrsummary1 <- table(data1$year4)
+yrsummary1
+
+#describe the data
+descr(data1$countypop) #county population
+descr(data1$enrollment) #county total enrollment
+descr(data1$totalexpenditure_r) #total school spending
+descr(data1$policeprottotalexp_r) #total police spending
+descr(data1$fireprottotalexpend_r) #total fire spending
+
+```
+
+-   data1 include 24296 obs. of 55 variables
+
+-   The sample covers data from year 1972 from to 2012; which is 41 years, spanning from pre to post Civil War with major and minor changes in funding. 1982 and 1987 are years that have the most observations -\> important time, since the civil war happened around this timeline. Year 2012 has the least observations, which is 2694.
+
+-   Here's what I get from the data and some insights about distribution:
+
+-   ##County pop: N=24296; mean = 76445.13; median = 21601.00 -\> the mean is significantly higher than the median -\> this suggests that the distribution of county population is positively skewed, with a few counties having high population, pulling the mean upwards. The skewness (17.50) and kurtosis (471.84) values also confirms this.
+
+-   ##County total enrollment: mean = 13353.30; median = 4164.00 -\> similarly, the mean is substantially higher than the median -\> this indicates a positive skew in the distribution of enrollment numbers, implying that there are a few counties with exceptionally large enrollments -\> higher mean. skewness (17.92) +kurtosis (995.995.6) values reinforce this observation.
+
+-   Do other statistic confirms my thoughts about the distribution?
+
+    | ๑(◕‿◕)๑   | Total school spending | Total police spending | Total fire department spending |
+    |------------------|------------------|------------------|--------------------|
+    | Mean      | \$119,265,990.52      | \$416,436,404.88      | \$8,167,359.84                 |
+    | Median    | \$30,030,499.75       | \$2,212,279.65        | \$711,538.69                   |
+    | Skewness  | 18.27                 | 25.64                 | 21.69                          |
+    | Kurtosis  | 533.16                | 976.86                | 765.91                         |
+    | (☝ ՞ਊ ՞)☝ | (☝ ՞ਊ ՞)☝             | (☝ ՞ਊ ՞)☝             | (☝ ՞ਊ ՞)☝                      |
+
+    : seems like the answer is yeup.
+
+-   In all 3 cases, I can observe significant positive skewness and high kurtosis, values, similat to the population and enrollment variables. additionally, the mean values are considerably higher than the median values -\> distributions skewed towards higher values.
+
+    =\> the distributions of spending variables are heavily skewed towards the right, with a few counties with exceptionally higher spending amounts -\> inflated mean values
+
+```{r}
+
+#Part 3
+
+##Next, I adjust the spending variables below by scaling them per-capita (per-pupil in the caseof schools). Make the adjustment for total spending, direct spending, current spending, andcapital spending. (Notice in 2a, there are some counties with zero population. We want to drop those from the sample.)
+
+#create scaled variables
+#overwrite the data and drop counties where population = 0
+data1 <- data1[which(data1$countypop > 0),]
+
+#school spending per-pupil
+data1$pp_tot <- data1$totalexpenditure_r/data1$enrollment
+data1$pp_cap <- data1$totalcapitaloutlays_r/data1$enrollment
+data1$pp_curr <- data1$totalcurrentexpend_r/data1$enrollment
+
+#public safety spending per-capita
+data1$pc_pol_tot <- data1$policeprottotalexp_r/data1$countypop
+data1$pc_pol_cap <- data1$policeprotcapoutlay_r/data1$countypop
+data1$pc_pol_dir <- data1$policeprotdirectexp_r/data1$countypop
+
+#fire safety spending per-capita (no capital spending category)
+data1$pc_fire_tot <- data1$fireprottotalexpend_r/data1$countypop
+data1$pc_fire_dir <- data1$fireprotdirectexp_r/data1$countypop
+
+#describe the scaled data
+descr(data1$pp_tot) #per-pupil spending
+descr(data1$pc_pol_tot) #per capita policing
+descr(data1$pc_fire_tot) #per capita fire protection
+
+
+##Kernel Density Plots
+dpp <- density(data1$pp_tot)
+plot(dpp) # plots  the results
+
+dpp1 <- density(data1$totalexpenditure_r)
+plot(dpp1) # plot the results
+
+dpc <- density(data1$pc_pol_tot)
+plot(dpc) #lot the results
+
+dpc1 <- density(data1$policeprottotalexp_r)
+plot(dpc1) # plot the results
+
+
+
+
+
+
+
+
+```
+
+| this is so fun i love this project \<3 | total school expenditure | per pupil school expenditure | total police expenditure | per capita police expenditure |
+|---------------|---------------|---------------|---------------|---------------|
+| skewness                               | 18.27                    | 2.11                         | 25.64                    | 3.72                          |
+| kurtosis                               | 533.16                   | 13.09                        | 976.86                   | 42.72                         |
+| °˖✧◝(⁰▿⁰)◜✧˖°                          | °˖✧◝(⁰▿⁰)◜✧˖°            | °˖✧◝(⁰▿⁰)◜✧˖°                | °˖✧◝(⁰▿⁰)◜✧˖°            |                               |
+
+-   #in general, the distributions of per-pupil and per-capita spending are less skewed and exhibit lower kurtosis to their total expenditure counterparts.
+
+-   also, the curves for per pupil and per capita spending are more symmetric + less heavy-tailed
+
+    =\> scaling the expenditure by population + enrollment helps to mitigate the extreme values + outliers that present in the expenditure data.
+
+-   #in specific
+
+-   ##1. total school expenditure (dpp1): extreme right-skewed distribution with a long tail towards higher values -\> presence of a few very large outliers.
+
+-   ##2. per-pupil school expenditire (dpp): right-skewed, but to a lesser extent compared to the one in ##4. It has a more pronounced peak and a shorter tail on the right side -\> more concentrated distribution.
+
+-   ##3. total police expenditure (dpc1): relatively flat, with no clear peak or skewness -\> a more uniform distribution or the presence of multiple modes.
+
+-   ##4. per capita police expenditure: is heavily right-skewed, with a long tail towards higher values. -\> there are some outliers + extreme values on the higher end.
+
+-   #side note: in this part I focus on the curves and less on interpreting the axes.
+
+```{r}
+
+#Part 4
+#next, i perform the log transformation for per-pupil spending, per-capita police spending, and per capita fire spending
+
+#log transformations of per capita variables
+data1$log_school <- log(data1$pp_tot)
+data1$log_police <- log(data1$pc_pol_tot)
+data1$log_fire <- log(data1$pc_fire_tot)
+
+###Density plots for log variables
+dpp2 <- density(data1$log_school)
+plot(dpp2) #plots the results
+
+dpc2 <- density(data1$log_police)
+plot(dpc2) # plot the results
+
+
+
+
+```
+
+-   The new distribution of the log police + school expenditure are more unimodal + symmetric + less extreme shape + their density plot for log police expenditure is bell shaped/center around o -\> normal distribution.
+
+-   the same is for log school, which is also roughly symmetric, but is slightly skewed to the left compared to the log police.
+
+-   i think this log application has effectively corrected the severe right skewness/positive skewness/extreme values observed in part 3
+
+    =\> this display more well-behaved, unimodal, symmetric distributions -\> easier to analyze modeling.
+
+```{r}
+#Part 5
+
+#This part will focus on the correlation between the following:
+##1. The per-capita police and per-pupil school spending
+##2. The per-capita fire and per-pupil school spending
+##3. per-capita fire and per-capita police spending
+
+#will also include the three scatterplots between:
+##1. log(school spending) vs. log(police spending)
+##2. log(school spending) vs. log(fire spending)
+##3. log(fire spending) vs. log(police spending)
+
+###correlations
+cor(data1$pc_pol_tot, data1$pp_tot)
+plot(data1$pp_tot, data1$pc_pol_tot,)
+plot(data1$log_school, data1$log_police)
+
+cor(data1$pc_fire_tot, data1$pp_tot)
+plot(data1$pp_tot, data1$pc_fire_tot,)
+plot(data1$log_school, data1$log_fire,)
+
+cor(data1$pc_fire_tot, data1$pc_pol_tot)
+plot(data1$pc_fire_tot, data1$pc_pol_tot,)
+plot(data1$log_fire, data1$log_police,)
+
+```
+
+##1. The per-capita police and per-pupil school spending: slightly positive correlation
+
+##2. The per-capita fire and per-pupil school spending: in short, there's no clear pattern as it is scattered randomly -\> little to no correlation
+
+##3. per-capita fire and per-capita police spending: weak or no clear correlation
+
+##1. log(school spending) vs. log(police spending): strong correlation, with the points cluttering tightly around a straight line
+
+##2. log(school spending) vs. log(fire spending): the data points form a relatively tight, elongated clustered oriented from the bottom - left to the top right -\> big positive correlation
+
+##3. log(fire spending) vs. log(police spending) : the data points are clustered along a roughly straight line, bottom left to top right -\> strong correlation.
+
+#### part 6 will be uploaded soon :\>\>\> since it requires heavy writting on my end (yeup i'd like to force myself to do that)
+
+#### , i need some more time to review it. :\>\>\>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
