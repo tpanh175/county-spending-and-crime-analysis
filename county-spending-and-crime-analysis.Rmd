@@ -229,9 +229,7 @@ plot(data1$log_fire, data1$log_police,)
 
 ##3. log(fire spending) vs. log(police spending) : the data points are clustered along a roughly straight line, bottom left to top right -\> strong correlation.
 
-#### part 6 will be uploaded soon :\>\>\> since it requires heavy writting on my end (yeup i'd like to force myself to do that)
-
-#### , i need some more time to review it. :\>\>\>
+#### part 6
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
